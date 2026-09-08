@@ -107,7 +107,7 @@ export default async function AdminPage() {
                     </div>
                     <p className="text-slate-600 font-medium">Business: {doc.business.displayName}</p>
                     <p className="text-slate-500 text-[11px]">{doc.notes}</p>
-                    <a href={`/${doc.storageKey}`} target="_blank" className="inline-flex items-center gap-1 text-orange-600 hover:underline mt-1 font-semibold">
+                    <a href={`/api/mock-document?name=${encodeURIComponent(doc.originalName)}`} target="_blank" className="inline-flex items-center gap-1 text-orange-600 hover:underline mt-1 font-semibold">
                       View Uploaded Document <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
