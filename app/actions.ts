@@ -45,7 +45,18 @@ export async function getActiveUser(): Promise<{
   if (userIdVal && roleVal) {
     const user = await prisma.user.findUnique({
       where: { id: userIdVal },
-      include: { businesses: { include: { products: { include: { destinations: true } } } } },
+      include: { 
+        businesses: { 
+          include: { 
+            products: { 
+              include: { 
+                destinations: { include: { country: true } } 
+              } 
+            } 
+          } 
+        },
+        providers: true 
+      },
     });
     if (user) {
       return { user, role: roleVal as 'MSME' | 'PROVIDER' | 'ADMIN' };
@@ -55,7 +66,18 @@ export async function getActiveUser(): Promise<{
   // Fallback to demo user if no cookie or user not found
   const demoMsme = await prisma.user.findFirst({
     where: { role: 'MSME' },
-    include: { businesses: { include: { products: { include: { destinations: true } } } } },
+    include: { 
+      businesses: { 
+        include: { 
+          products: { 
+            include: { 
+              destinations: { include: { country: true } } 
+            } 
+          } 
+        } 
+      },
+      providers: true
+    },
   });
 
   return { user: demoMsme, role: 'MSME' };
