@@ -1,4 +1,5 @@
 import React from 'react';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { getActiveUser, requestCertificationAction } from '@/app/actions';
 import { prisma } from '@/lib/prisma';
@@ -6,6 +7,10 @@ import { Award, Clock, CheckCircle2, ShieldCheck, ArrowRight, Building } from 'l
 
 export default async function CertificationsPage() {
   const { role, user } = await getActiveUser();
+
+  if (!user) {
+    redirect('/login');
+  }
   const business = user?.businesses[0];
 
   const certRequirements = await prisma.requirement.findMany({

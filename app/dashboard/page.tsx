@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { getActiveUser, getAllUsers } from '@/app/actions';
 import { prisma } from '@/lib/prisma';
@@ -24,13 +25,16 @@ import {
 
 export default async function DashboardPage() {
   const { role, user } = await getActiveUser();
-  const allUsers = await getAllUsers();
+
+  if (!user) {
+    redirect('/login');
+  }
 
   // If Provider role is selected, redirect to Provider portal
   if (role === 'PROVIDER') {
     return (
       <div className="min-h-screen bg-[#FAF9F6]">
-        <Navbar currentRole={role} userEmail={user?.email} userName={user?.name} allUsers={allUsers} />
+        <Navbar currentRole={role} userEmail={user?.email} userName={user?.name} />
         <div className="max-w-7xl mx-auto py-12 px-4 text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mx-auto">
             <Truck className="w-8 h-8" />
@@ -67,7 +71,7 @@ export default async function DashboardPage() {
 
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-slate-900 pb-16 font-sans">
-        <Navbar currentRole={role} userEmail={user?.email} userName={user?.name} allUsers={allUsers} />
+        <Navbar currentRole={role} userEmail={user?.email} userName={user?.name} />
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
           {/* Admin Header */}
@@ -220,7 +224,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-slate-900 pb-16 font-sans">
-      <Navbar currentRole={role} userEmail={user?.email} userName={user?.name} allUsers={allUsers} />
+      <Navbar currentRole={role} userEmail={user?.email} userName={user?.name} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Top Header Card */}

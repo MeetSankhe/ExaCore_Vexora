@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { getActiveUser, getAllUsers } from '@/app/actions';
 import { prisma } from '@/lib/prisma';
@@ -21,6 +22,10 @@ import {
 
 export default async function ReadinessPage() {
   const { role, user } = await getActiveUser();
+
+  if (!user) {
+    redirect('/login');
+  }
   const allUsers = await getAllUsers();
   const business = user?.businesses[0];
   const product = business?.products[0];

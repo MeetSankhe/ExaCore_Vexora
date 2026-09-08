@@ -1,4 +1,5 @@
 import React from 'react';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { getActiveUser, updateRuleAction, deleteUserAction, verifyDocumentAction } from '@/app/actions';
 import { prisma } from '@/lib/prisma';
@@ -6,6 +7,10 @@ import { ShieldCheck, Sliders, FileText, AlertTriangle, Users, Ship, Trash2, Che
 
 export default async function AdminPage() {
   const { role, user } = await getActiveUser();
+
+  if (!user) {
+    redirect('/login');
+  }
 
   const rules = await prisma.rule.findMany({
     include: { category: true, country: true },

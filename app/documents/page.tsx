@@ -1,4 +1,5 @@
 import React from 'react';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { getActiveUser, uploadDocumentAction, verifyDocumentAction } from '@/app/actions';
 import { prisma } from '@/lib/prisma';
@@ -17,6 +18,10 @@ import {
 
 export default async function DocumentsPage() {
   const { role, user } = await getActiveUser();
+
+  if (!user) {
+    redirect('/login');
+  }
   const business = user?.businesses[0];
 
   const documents = await prisma.document.findMany({

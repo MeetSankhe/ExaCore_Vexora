@@ -1,4 +1,5 @@
 import React from 'react';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { getActiveUser, updatePackagingItemAction } from '@/app/actions';
 import { prisma } from '@/lib/prisma';
@@ -6,6 +7,10 @@ import { Box, CheckCircle2, AlertTriangle, Info, AlertOctagon } from 'lucide-rea
 
 export default async function PackagingPage() {
   const { role, user } = await getActiveUser();
+
+  if (!user) {
+    redirect('/login');
+  }
   const business = user?.businesses[0];
   const product = business?.products[0];
   const destination = product?.destinations[0];

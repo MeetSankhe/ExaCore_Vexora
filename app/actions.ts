@@ -60,28 +60,19 @@ export async function getActiveUser(): Promise<{
       },
     });
     if (user) {
-      return { user, role: roleVal as 'MSME' | 'PROVIDER' | 'ADMIN' };
+      return { user, role: (roleVal || user.role) as 'MSME' | 'PROVIDER' | 'ADMIN' };
     }
   }
 
-  // Fallback to demo user if no cookie or user not found
-  const demoMsme = await prisma.user.findFirst({
-    where: { role: 'MSME' },
-    include: { 
-      businesses: { 
-        include: { 
-          products: { 
-            include: { 
-              destinations: { include: { country: true } } 
-            } 
-          } 
-        } 
-      },
-      providers: true
-    },
-  });
+  return { user: null, role: 'MSME' };
+}
 
-  return { user: demoMsme, role: 'MSME' };
+export async function logoutUserAction(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(USER_ID_COOKIE);
+  cookieStore.delete(PERSONA_COOKIE);
+  revalidatePath('/', 'layout');
+  redirect('/login');
 }
 
 export async function switchUserRoleAction(role: 'MSME' | 'PROVIDER' | 'ADMIN'): Promise<void> {

@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { getActiveUser, updateProviderTaskAction } from '@/app/actions';
 import { prisma } from '@/lib/prisma';
@@ -7,6 +8,10 @@ import { Truck, CheckCircle2, FileText, AlertTriangle, Clock, ShieldCheck } from
 
 export default async function ProviderPage() {
   const { role, user } = await getActiveUser();
+
+  if (!user) {
+    redirect('/login');
+  }
 
   // Get all active provider tasks across system
   const providerTasks = await prisma.providerTask.findMany({

@@ -1,4 +1,5 @@
 import React from 'react';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import BusinessRegistrationsForm from '@/components/BusinessRegistrationsForm';
 import { getActiveUser, getAllUsers, updateBusinessRegistrationsAction, verifyDocumentAction } from '@/app/actions';
@@ -7,6 +8,11 @@ import { Building2, MapPin, CheckCircle2, ShieldCheck, Upload, FileText, AlertTr
 
 export default async function BusinessPage() {
   const { role, user } = await getActiveUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
   const allUsers = await getAllUsers();
   
   // If the logged-in user doesn't own a business (e.g. Admin or Provider),

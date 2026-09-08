@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { getActiveUser, createShipmentAction } from '@/app/actions';
 import { prisma } from '@/lib/prisma';
@@ -8,6 +9,10 @@ import { Truck, Plus, CheckCircle2, AlertOctagon, ArrowRight, MapPin, ExternalLi
 
 export default async function ShipmentsPage() {
   const { role, user } = await getActiveUser();
+
+  if (!user) {
+    redirect('/login');
+  }
   const business = user?.businesses[0];
   const products = business?.products || [];
   const countries = await prisma.country.findMany({ where: { active: true } });
