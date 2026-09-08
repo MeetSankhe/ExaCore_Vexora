@@ -1,69 +1,211 @@
-import Image from "next/image";
+import React from 'react';
+import Link from 'next/link';
+import Navbar from '@/components/Navbar';
+import { getActiveUser, getAllUsers } from '@/app/actions';
+import {
+  Ship,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  AlertOctagon,
+  Award,
+  Truck,
+  FileText,
+  Boxes,
+  Compass,
+  MapPin,
+} from 'lucide-react';
 
-export default function Home() {
+export default async function LandingPage() {
+  const { role, user } = await getActiveUser();
+  const allUsers = await getAllUsers();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-[#FAF9F6] text-slate-900 flex flex-col font-sans">
+      <Navbar currentRole={role} userEmail={user?.email} userName={user?.name} allUsers={allUsers} />
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden py-16 md:py-24 border-b border-slate-200 bg-linear-to-b from-white to-[#FAF9F6]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* Left Content */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-xs font-semibold">
+                <MapPin className="w-3.5 h-3.5 text-orange-600" />
+                Pilot Geography: Palghar, Maharashtra → Scalable Across India
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.1] font-serif">
+                Tell us what you make. <br />
+                <span className="text-orange-600">We guide your export journey.</span>
+              </h1>
+
+              <p className="text-lg text-slate-600 max-w-2xl font-normal leading-relaxed">
+                VyaparFlow converts complex multi-agency export regulations into one clear, explainable, and trackable digital operating system for Tier-2/Tier-3 Indian MSMEs.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-4 pt-2">
+                <Link
+                  href="/dashboard"
+                  className="px-6 py-3.5 rounded-xl bg-orange-600 text-white font-bold text-base shadow-lg shadow-orange-600/30 hover:bg-orange-700 transition-all flex items-center gap-2 group cursor-pointer"
+                >
+                  Enter Golden Demo Dashboard
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+
+                <Link
+                  href="/readiness"
+                  className="px-6 py-3.5 rounded-xl bg-white text-slate-800 font-semibold text-base border border-slate-300 hover:bg-slate-50 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                >
+                  <Compass className="w-5 h-5 text-slate-600" />
+                  View Readiness Engine
+                </Link>
+              </div>
+
+              {/* Feature Checklist */}
+              <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-600">
+                <div className="flex items-center gap-2 bg-white/80 p-2.5 rounded-lg border border-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Deterministic Rules Engine</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/80 p-2.5 rounded-lg border border-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>0-100 Score & Blocker Audits</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/80 p-2.5 rounded-lg border border-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>End-to-End Shipment Tracking</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Card / Visual Banner */}
+            <div className="lg:col-span-5">
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-2xl bg-slate-900 text-white p-6 md:p-8 space-y-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wider text-orange-400 font-bold">
+                    Palghar MSME Case Study
+                  </span>
+                  <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-emerald-500/30">
+                    62% Initial Readiness
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="text-2xl font-bold text-white font-serif">
+                    Palghar Agro Processing Pvt Ltd
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Exporting: Premium Alphonso Mango Pulp → Dubai, UAE
+                  </p>
+                </div>
+
+                {/* Score Ring / Bar */}
+                <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700 space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-slate-300">Readiness Score</span>
+                    <span className="font-bold text-orange-400">62 / 100</span>
+                  </div>
+                  <div className="w-full bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                    <div className="bg-orange-500 h-full rounded-full w-[62%]" />
+                  </div>
+                  <p className="text-[11px] text-amber-400 flex items-center gap-1">
+                    <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
+                    4 Critical Dispatch Blockers Active
+                  </p>
+                </div>
+
+                {/* CTA inside card */}
+                <Link
+                  href="/dashboard"
+                  className="block w-full py-3 text-center bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-sm transition-colors shadow-md"
+                >
+                  Simulate Resolving Blockers & Shipping →
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Process Flow Cards */}
+      <section className="py-16 bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center max-w-3xl mx-auto space-y-3">
+            <h2 className="text-3xl font-extrabold text-slate-900 font-serif">
+              The 5-Stage Connected Export Operating Journey
+            </h2>
+            <p className="text-slate-600 text-sm">
+              From registration & rule matching to quote selection and customs clearance tracking.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="bg-[#FAF9F6] p-5 rounded-2xl border border-slate-200 space-y-3 relative">
+              <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">
+                1
+              </div>
+              <h4 className="font-bold text-base text-slate-900">Profile Setup</h4>
+              <p className="text-xs text-slate-600">
+                Enter business registrations (GST, IEC), product HS codes, and destination market.
+              </p>
+            </div>
+
+            <div className="bg-[#FAF9F6] p-5 rounded-2xl border border-slate-200 space-y-3 relative">
+              <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">
+                2
+              </div>
+              <h4 className="font-bold text-base text-slate-900">Rule Engine</h4>
+              <p className="text-xs text-slate-600">
+                Deterministic compliance engine generates product-country document & lab requirements.
+              </p>
+            </div>
+
+            <div className="bg-[#FAF9F6] p-5 rounded-2xl border border-slate-200 space-y-3 relative">
+              <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">
+                3
+              </div>
+              <h4 className="font-bold text-base text-slate-900">Readiness Score</h4>
+              <p className="text-xs text-slate-600">
+                0–100 weighted scoring with explainable blockers and prioritized action queue.
+              </p>
+            </div>
+
+            <div className="bg-[#FAF9F6] p-5 rounded-2xl border border-slate-200 space-y-3 relative">
+              <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">
+                4
+              </div>
+              <h4 className="font-bold text-base text-slate-900">Quotes & Tasking</h4>
+              <p className="text-xs text-slate-600">
+                Compare logistics quotes, select provider, and initiate CHA/Customs & Insurance tasks.
+              </p>
+            </div>
+
+            <div className="bg-[#FAF9F6] p-5 rounded-2xl border border-slate-200 space-y-3 relative">
+              <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-sm">
+                5
+              </div>
+              <h4 className="font-bold text-base text-slate-900">Live Timeline</h4>
+              <p className="text-xs text-slate-600">
+                Persisted tracking updates from pickup to customs clearance and final delivery.
+              </p>
+            </div>
+          </div>
         </div>
-      </main>
+      </section>
+
+      {/* Footer */}
+      <footer className="mt-auto bg-slate-900 text-slate-400 py-8 text-xs border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Ship className="w-5 h-5 text-orange-500" />
+            <span className="font-bold text-white text-sm uppercase">VYAPARFLOW</span>
+            <span>— Export Logistics Readiness Platform</span>
+          </div>
+          <p>© 2026 VyaparFlow Platform. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }

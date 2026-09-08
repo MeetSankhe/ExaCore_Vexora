@@ -1,0 +1,821 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('🌱 Starting database seeding for Export Logistics Readiness Platform...');
+
+  // Clean existing tables
+  await prisma.auditLog.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.trackingEvent.deleteMany();
+  await prisma.insuranceOption.deleteMany();
+  await prisma.quote.deleteMany();
+  await prisma.providerTask.deleteMany();
+  await prisma.certificationRequest.deleteMany();
+  await prisma.packagingItem.deleteMany();
+  await prisma.document.deleteMany();
+  await prisma.requirement.deleteMany();
+  await prisma.rule.deleteMany();
+  await prisma.shipment.deleteMany();
+  await prisma.productCountry.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.productCategory.deleteMany();
+  await prisma.country.deleteMany();
+  await prisma.provider.deleteMany();
+  await prisma.business.deleteMany();
+  await prisma.user.deleteMany();
+
+  // 1. Users
+  console.log('Creating users...');
+  const msmeUser = await prisma.user.create({
+    data: {
+      email: 'msme@palghar-exports.com',
+      passwordHash: 'password123',
+      name: 'Rajesh Patil (MSME Owner)',
+      role: 'MSME',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    },
+  });
+
+  const msmeUser2 = await prisma.user.create({
+    data: {
+      email: 'msme2@konkan-spices.com',
+      passwordHash: 'password123',
+      name: 'Sunil Sawant',
+      role: 'MSME',
+    },
+  });
+
+  const providerUserFreight = await prisma.user.create({
+    data: {
+      email: 'provider@freight.com',
+      passwordHash: 'password123',
+      name: 'Captain Vikram Sharma (SwiftGlobe)',
+      role: 'PROVIDER',
+    },
+  });
+
+  const providerUserLab = await prisma.user.create({
+    data: {
+      email: 'lab@certify.com',
+      passwordHash: 'password123',
+      name: 'Dr. Anita Roy (Apex Quality Labs)',
+      role: 'PROVIDER',
+    },
+  });
+
+  const providerUserCHA = await prisma.user.create({
+    data: {
+      email: 'cha@customs.com',
+      passwordHash: 'password123',
+      name: 'Suresh Menon (Palghar Port CHA)',
+      role: 'PROVIDER',
+    },
+  });
+
+  const adminUser = await prisma.user.create({
+    data: {
+      email: 'admin@vyaparflow.com',
+      passwordHash: 'password123',
+      name: 'Platform Operator Admin',
+      role: 'ADMIN',
+    },
+  });
+
+  // 2. Businesses
+  console.log('Creating businesses...');
+  const palgharBusiness = await prisma.business.create({
+    data: {
+      ownerUserId: msmeUser.id,
+      legalName: 'Palghar Agro Processing & Exports Pvt Ltd',
+      displayName: 'Palghar Quality Agro Exporters',
+      businessType: 'Private Limited / MSME Manufacturer',
+      location: 'Plot 42, Tarapur Industrial Area',
+      city: 'Palghar',
+      state: 'Maharashtra',
+      gstStatus: 'Active (27AAACP1234F1Z5)',
+      iecStatus: 'Active (0301099882)',
+      profileCompletion: 90,
+    },
+  });
+
+  const konkanBusiness = await prisma.business.create({
+    data: {
+      ownerUserId: msmeUser2.id,
+      legalName: 'Konkan Spices & Extracts LLP',
+      displayName: 'Konkan Spice Exporters',
+      businessType: 'LLP',
+      location: 'MIDC Ratnagiri',
+      city: 'Ratnagiri',
+      state: 'Maharashtra',
+      gstStatus: 'Active',
+      iecStatus: 'Active',
+      profileCompletion: 75,
+    },
+  });
+
+  // 3. Product Categories
+  console.log('Creating categories...');
+  const catAgro = await prisma.productCategory.create({
+    data: {
+      name: 'Agricultural & Processed Foods',
+      description: 'Processed fruits, pulp, juices, canned agricultural items',
+    },
+  });
+
+  const catSpices = await prisma.productCategory.create({
+    data: {
+      name: 'Spices & Essential Oils',
+      description: 'Whole spices, ground spices, oleoresins and extracts',
+    },
+  });
+
+  const catTextiles = await prisma.productCategory.create({
+    data: {
+      name: 'Textiles & Ready Made Garments',
+      description: 'Cotton garments, handloom fabrics, industrial textiles',
+    },
+  });
+
+  const catHardware = await prisma.productCategory.create({
+    data: {
+      name: 'Engineering & Metal Hardware',
+      description: 'Fasteners, valves, pump components, forged fittings',
+    },
+  });
+
+  const catPharma = await prisma.productCategory.create({
+    data: {
+      name: 'Chemical & Pharmaceuticals',
+      description: 'Active pharmaceutical ingredients, organic chemicals',
+    },
+  });
+
+  // 4. Destination Countries
+  console.log('Creating countries...');
+  const uae = await prisma.country.create({
+    data: { name: 'United Arab Emirates', isoCode: 'AE' },
+  });
+
+  const germany = await prisma.country.create({
+    data: { name: 'Germany', isoCode: 'DE' },
+  });
+
+  const usa = await prisma.country.create({
+    data: { name: 'United States', isoCode: 'US' },
+  });
+
+  const uk = await prisma.country.create({
+    data: { name: 'United Kingdom', isoCode: 'GB' },
+  });
+
+  // 5. Products
+  console.log('Creating products...');
+  const productMangoPulp = await prisma.product.create({
+    data: {
+      businessId: palgharBusiness.id,
+      categoryId: catAgro.id,
+      name: 'Premium Alphonso Mango Pulp (Canned)',
+      hsCode: '2008.99.11',
+      unit: 'MT',
+      defaultValue: 1500000,
+    },
+  });
+
+  const productTurmeric = await prisma.product.create({
+    data: {
+      businessId: konkanBusiness.id,
+      categoryId: catSpices.id,
+      name: 'Organic Turmeric Powder (Curcumin 5%)',
+      hsCode: '0910.30.30',
+      unit: 'KG',
+      defaultValue: 800000,
+    },
+  });
+
+  // 6. ProductCountry Mappings
+  const pcMangoUAE = await prisma.productCountry.create({
+    data: {
+      productId: productMangoPulp.id,
+      countryId: uae.id,
+    },
+  });
+
+  const pcMangoDE = await prisma.productCountry.create({
+    data: {
+      productId: productMangoPulp.id,
+      countryId: germany.id,
+    },
+  });
+
+  const pcTurmericUS = await prisma.productCountry.create({
+    data: {
+      productId: productTurmeric.id,
+      countryId: usa.id,
+    },
+  });
+
+  // 7. Compliance Rules Engine Dataset (15+ Rules)
+  console.log('Creating compliance rules dataset...');
+  const ruleApeda = await prisma.rule.create({
+    data: {
+      categoryId: catAgro.id,
+      countryId: uae.id,
+      type: 'document',
+      title: 'RCMC / APEDA Export License Registration',
+      description: 'Mandatory registration with Agricultural and Processed Food Products Export Development Authority (APEDA).',
+      priority: 'critical',
+      mandatory: true,
+      weight: 15,
+      processingDays: 3,
+      blocksDispatch: true,
+      notes: 'Required under Indian Foreign Trade Policy for processed food products.',
+    },
+  });
+
+  const rulePhyto = await prisma.rule.create({
+    data: {
+      categoryId: catAgro.id,
+      countryId: uae.id,
+      type: 'certification',
+      title: 'Phytosanitary Inspection Certificate',
+      description: 'Official sanitary & pest clearance issued by Directorate of Plant Protection, Quarantine & Storage.',
+      priority: 'critical',
+      mandatory: true,
+      weight: 20,
+      processingDays: 4,
+      blocksDispatch: true,
+      notes: 'Required for entry clearance at Jebel Ali Port, UAE.',
+    },
+  });
+
+  const ruleCoO = await prisma.rule.create({
+    data: {
+      categoryId: catAgro.id,
+      countryId: uae.id,
+      type: 'document',
+      title: 'Non-Preferential Certificate of Origin (CoO)',
+      description: 'Legal proof of origin issued by authorized Chamber of Commerce in Maharashtra.',
+      priority: 'critical',
+      mandatory: true,
+      weight: 15,
+      processingDays: 2,
+      blocksDispatch: true,
+      notes: 'Mandatory for UAE customs valuation and origin verification.',
+    },
+  });
+
+  const ruleInvoice = await prisma.rule.create({
+    data: {
+      categoryId: catAgro.id,
+      countryId: uae.id,
+      type: 'document',
+      title: 'Commercial Invoice & Detailed Packing List Draft',
+      description: 'Export commercial invoice specifying unit price, HS Code, net/gross weight and shipping marks.',
+      priority: 'high',
+      mandatory: true,
+      weight: 10,
+      processingDays: 1,
+      blocksDispatch: true,
+      notes: 'Must match manifest data filed at port customs.',
+    },
+  });
+
+  const ruleHalal = await prisma.rule.create({
+    data: {
+      categoryId: catAgro.id,
+      countryId: uae.id,
+      type: 'certification',
+      title: 'Halal Food Product Compliance Certificate',
+      description: 'Certificate from accredited Halal certification body for food exports to GCC countries.',
+      priority: 'high',
+      mandatory: true,
+      weight: 15,
+      processingDays: 5,
+      blocksDispatch: false,
+      notes: 'Ensures compliance with UAE Ministry of Industry & Advanced Technology regulations.',
+    },
+  });
+
+  const ruleLabelling = await prisma.rule.create({
+    data: {
+      categoryId: catAgro.id,
+      countryId: uae.id,
+      type: 'labelling',
+      title: 'Bilingual English/Arabic Export Packaging & Labelling',
+      description: 'Outer carton & drum labelling with batch number, production date, expiry date, and storage temp in Arabic & English.',
+      priority: 'high',
+      mandatory: true,
+      weight: 15,
+      processingDays: 2,
+      blocksDispatch: true,
+      notes: 'Non-compliant labels will cause cargo quarantine at UAE port of entry.',
+    },
+  });
+
+  const ruleFssai = await prisma.rule.create({
+    data: {
+      categoryId: catAgro.id,
+      countryId: uae.id,
+      type: 'document',
+      title: 'FSSAI Export Central License',
+      description: 'Food Safety and Standards Authority of India central export category license.',
+      priority: 'medium',
+      mandatory: true,
+      weight: 10,
+      processingDays: 2,
+      blocksDispatch: true,
+      notes: 'Required for all food processing units engaging in export operations.',
+    },
+  });
+
+  // Additional rules for Germany & USA
+  await prisma.rule.create({
+    data: {
+      categoryId: catAgro.id,
+      countryId: germany.id,
+      type: 'certification',
+      title: 'EU Pesticide & Heavy Metal Residue Test Report',
+      description: 'Lab analysis verifying compliance with EU Maximum Residue Limits (MRLs).',
+      priority: 'critical',
+      mandatory: true,
+      weight: 25,
+      processingDays: 6,
+      blocksDispatch: true,
+    },
+  });
+
+  await prisma.rule.create({
+    data: {
+      categoryId: catSpices.id,
+      countryId: usa.id,
+      type: 'document',
+      title: 'US FDA Prior Notice & Facility Registration',
+      description: 'Filing of FDA Prior Notice before dispatching food/spice cargo to USA.',
+      priority: 'critical',
+      mandatory: true,
+      weight: 30,
+      processingDays: 3,
+      blocksDispatch: true,
+    },
+  });
+
+  // 8. Requirements for Palghar MSME (Alphonso Mango Pulp -> UAE)
+  console.log('Creating product-country requirements for Palghar MSME...');
+  const reqApeda = await prisma.requirement.create({
+    data: {
+      productCountryId: pcMangoUAE.id,
+      ruleId: ruleApeda.id,
+      type: 'document',
+      title: ruleApeda.title,
+      priority: 'critical',
+      status: 'verified', // Completed
+      weight: 15,
+      completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  const reqInvoice = await prisma.requirement.create({
+    data: {
+      productCountryId: pcMangoUAE.id,
+      ruleId: ruleInvoice.id,
+      type: 'document',
+      title: ruleInvoice.title,
+      priority: 'high',
+      status: 'verified', // Completed
+      weight: 10,
+      completedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  const reqFssai = await prisma.requirement.create({
+    data: {
+      productCountryId: pcMangoUAE.id,
+      ruleId: ruleFssai.id,
+      type: 'document',
+      title: ruleFssai.title,
+      priority: 'medium',
+      status: 'verified', // Completed
+      weight: 10,
+      completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  // Critical Blockers
+  const reqPhyto = await prisma.requirement.create({
+    data: {
+      productCountryId: pcMangoUAE.id,
+      ruleId: rulePhyto.id,
+      type: 'certification',
+      title: rulePhyto.title,
+      priority: 'critical',
+      status: 'missing', // BLOCKER 1
+      weight: 20,
+      reason: 'Requires plant quarantine lab inspection and certification request to authorized lab.',
+    },
+  });
+
+  const reqCoO = await prisma.requirement.create({
+    data: {
+      productCountryId: pcMangoUAE.id,
+      ruleId: ruleCoO.id,
+      type: 'document',
+      title: ruleCoO.title,
+      priority: 'critical',
+      status: 'under_review', // BLOCKER 2 (Uploaded file pending verification by Admin)
+      weight: 15,
+      reason: 'Uploaded document is under review by Platform Admin.',
+    },
+  });
+
+  const reqHalal = await prisma.requirement.create({
+    data: {
+      productCountryId: pcMangoUAE.id,
+      ruleId: ruleHalal.id,
+      type: 'certification',
+      title: ruleHalal.title,
+      priority: 'high',
+      status: 'missing', // BLOCKER 3
+      weight: 15,
+      reason: 'Halal accreditation request not yet assigned to certified body.',
+    },
+  });
+
+  const reqLabelling = await prisma.requirement.create({
+    data: {
+      productCountryId: pcMangoUAE.id,
+      ruleId: ruleLabelling.id,
+      type: 'labelling',
+      title: ruleLabelling.title,
+      priority: 'high',
+      status: 'uploaded', // BLOCKER 4 (Packaging checklist incomplete)
+      weight: 15,
+      reason: 'Packaging & labelling checklist requires validation of 2 pending items.',
+    },
+  });
+
+  // 9. Documents
+  console.log('Creating sample uploaded documents...');
+  await prisma.document.create({
+    data: {
+      businessId: palgharBusiness.id,
+      requirementId: reqApeda.id,
+      type: 'APEDA_RCMC',
+      storageKey: 'docs/apeda_rcmc_palghar_2026.pdf',
+      originalName: 'APEDA_RCMC_Palghar_PvtLtd.pdf',
+      mimeType: 'application/pdf',
+      size: 452000,
+      issueDate: new Date('2025-01-10'),
+      expiryDate: new Date('2028-01-09'),
+      status: 'verified',
+    },
+  });
+
+  await prisma.document.create({
+    data: {
+      businessId: palgharBusiness.id,
+      requirementId: reqInvoice.id,
+      type: 'InvoiceDraft',
+      storageKey: 'docs/commercial_invoice_draft_001.pdf',
+      originalName: 'Commercial_Invoice_Draft_SHP001.pdf',
+      mimeType: 'application/pdf',
+      size: 210000,
+      status: 'verified',
+    },
+  });
+
+  await prisma.document.create({
+    data: {
+      businessId: palgharBusiness.id,
+      requirementId: reqCoO.id,
+      type: 'CoO',
+      storageKey: 'docs/certificate_of_origin_draft.pdf',
+      originalName: 'Certificate_of_Origin_Palghar_Agro.pdf',
+      mimeType: 'application/pdf',
+      size: 320000,
+      issueDate: new Date('2026-03-01'),
+      expiryDate: new Date('2027-03-01'),
+      status: 'under_review', // Pending Admin review!
+      notes: 'Uploaded draft CoO issued by Maharashtra Chamber of Commerce for evaluation.',
+    },
+  });
+
+  // 10. Packaging Items
+  console.log('Creating packaging checklist items...');
+  await prisma.packagingItem.create({
+    data: {
+      productCountryId: pcMangoUAE.id,
+      title: 'Bilingual English/Arabic Production & Expiry Labeling',
+      type: 'labelling',
+      priority: 'high',
+      mandatory: true,
+      status: 'incomplete', // Incomplete
+      notes: 'Each 3.1kg tin drum must display batch code, manufacturing date, and expiry in Arabic & English.',
+    },
+  });
+
+  await prisma.packagingItem.create({
+    data: {
+      productCountryId: pcMangoUAE.id,
+      title: 'Food-Grade Aseptic Container Hermetic Sealing',
+      type: 'packaging',
+      priority: 'high',
+      mandatory: true,
+      status: 'completed',
+      notes: 'Verified inner food-grade liner integrity.',
+    },
+  });
+
+  await prisma.packagingItem.create({
+    data: {
+      productCountryId: pcMangoUAE.id,
+      title: 'Euro-Palletization & Heat-Treated ISPM-15 Wooden Pallets',
+      type: 'packaging',
+      priority: 'medium',
+      mandatory: false,
+      status: 'completed',
+      notes: 'Wooden pallets stamped with ISPM-15 phytosanitary mark.',
+    },
+  });
+
+  // 11. Providers
+  console.log('Creating service providers...');
+  const providerLab = await prisma.provider.create({
+    data: {
+      userId: providerUserLab.id,
+      name: 'Apex Quality & Plant Quarantine Labs',
+      type: 'CERTIFICATION',
+      serviceArea: 'Palghar & JNPT Port Region',
+      contactEmail: 'lab@certify.com',
+    },
+  });
+
+  const providerFreight1 = await prisma.provider.create({
+    data: {
+      userId: providerUserFreight.id,
+      name: 'SwiftGlobe Logistics India Ltd',
+      type: 'FREIGHT',
+      serviceArea: 'Global (Sea / Air / Express)',
+      contactEmail: 'quotes@swiftglobe.com',
+    },
+  });
+
+  const providerFreight2 = await prisma.provider.create({
+    data: {
+      name: 'Konkan Maritime Lines',
+      type: 'FREIGHT',
+      serviceArea: 'GCC & Middle East Routes',
+      contactEmail: 'info@konkanfreight.in',
+    },
+  });
+
+  const providerFreight3 = await prisma.provider.create({
+    data: {
+      name: 'Pacific Cargo Air Line',
+      type: 'FREIGHT',
+      serviceArea: 'Air Freight Cargo Express',
+      contactEmail: 'ops@pacificcargo.com',
+    },
+  });
+
+  const providerCHA = await prisma.provider.create({
+    data: {
+      userId: providerUserCHA.id,
+      name: 'Palghar Customs House Agent (CHA) & Maritime Services',
+      type: 'CUSTOMS_CHA',
+      serviceArea: 'JNPT Port & Palghar ICD',
+      contactEmail: 'cha@palgharport.in',
+    },
+  });
+
+  const providerInsurance = await prisma.provider.create({
+    data: {
+      name: 'ExportShield Marine & Cargo Insurance Corp',
+      type: 'INSURANCE',
+      serviceArea: 'Worldwide Cargo Insurance',
+      contactEmail: 'claims@exportshield.com',
+    },
+  });
+
+  // 12. Active Demo Shipment for Palghar MSME
+  console.log('Creating active demo shipment...');
+  const activeShipment = await prisma.shipment.create({
+    data: {
+      shipmentNumber: 'SHP-2026-AE-001',
+      businessId: palgharBusiness.id,
+      productId: productMangoPulp.id,
+      destinationCountryId: uae.id,
+      destinationCity: 'Dubai (Jebel Ali Port)',
+      value: 1500000,
+      currency: 'INR',
+      quantity: 10, // 10 MT
+      weight: 10000, // 10,000 KG
+      packages: 500, // 500 drums
+      mode: 'Sea',
+      status: 'Draft',
+      eta: new Date(Date.now() + 18 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  // 13. Seeded Quotes for active shipment
+  console.log('Creating logistics quotes...');
+  await prisma.quote.create({
+    data: {
+      shipmentId: activeShipment.id,
+      providerId: providerFreight1.id,
+      mode: 'Sea Freight (FCL 20ft Reefer)',
+      cost: 125000,
+      currency: 'INR',
+      transitMin: 12,
+      transitMax: 15,
+      inclusions: 'Port handling, JNPT customs documentation assistance, Temperature logging (+4°C)',
+      exclusions: 'Destination customs duty at Jebel Ali Port, Local warehouse demurrage',
+      isSelected: false,
+    },
+  });
+
+  await prisma.quote.create({
+    data: {
+      shipmentId: activeShipment.id,
+      providerId: providerFreight2.id,
+      mode: 'Sea Freight Express (Direct Liner)',
+      cost: 155000,
+      currency: 'INR',
+      transitMin: 8,
+      transitMax: 10,
+      inclusions: 'Door-to-door Palghar factory pickup, Container seal validation, Jebel Ali priority discharge',
+      exclusions: 'Import VAT/Duty in UAE',
+      isSelected: false,
+    },
+  });
+
+  await prisma.quote.create({
+    data: {
+      shipmentId: activeShipment.id,
+      providerId: providerFreight3.id,
+      mode: 'Air Cargo Express',
+      cost: 280000,
+      currency: 'INR',
+      transitMin: 2,
+      transitMax: 3,
+      inclusions: 'Direct flight Mumbai (BOM) -> Dubai (DXB), Airport cold store, Priority customs release',
+      exclusions: 'Heavy cargo oversized Surcharges',
+      isSelected: false,
+    },
+  });
+
+  // 14. Seeded Insurance Option
+  await prisma.insuranceOption.create({
+    data: {
+      shipmentId: activeShipment.id,
+      providerId: providerInsurance.id,
+      rate: 0.003, // 0.3%
+      premium: 4500,
+      coverage: 'All-Risk Marine Cargo Insurance (Institute Cargo Clauses A) including cold-chain breakdown cover up to ₹1,500,000 value.',
+      status: 'Not Requested',
+      exclusions: 'Delay in transit due to strike/war unless endorsed.',
+    },
+  });
+
+  // 15. Historical Delivered Shipment (For demonstration of completed timeline & analytics)
+  console.log('Creating historical completed shipment...');
+  const completedShipment = await prisma.shipment.create({
+    data: {
+      shipmentNumber: 'SHP-2026-DE-088',
+      businessId: palgharBusiness.id,
+      productId: productMangoPulp.id,
+      destinationCountryId: germany.id,
+      destinationCity: 'Hamburg',
+      value: 2200000,
+      currency: 'INR',
+      quantity: 15,
+      weight: 15000,
+      packages: 750,
+      mode: 'Sea',
+      status: 'Delivered',
+      eta: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  // Tracking events for completed shipment
+  const pastDays = (d: number) => new Date(Date.now() - d * 24 * 60 * 60 * 1000);
+
+  await prisma.trackingEvent.createMany({
+    data: [
+      {
+        shipmentId: completedShipment.id,
+        status: 'Order Confirmed',
+        timestamp: pastDays(20),
+        location: 'Palghar Industrial Estate, Maharashtra',
+        note: 'Shipment created and pre-shipment export checklist validated.',
+      },
+      {
+        shipmentId: completedShipment.id,
+        status: 'Documents Ready',
+        timestamp: pastDays(18),
+        location: 'Palghar Quality Agro HQ',
+        note: 'Commercial Invoice, Packing List, Certificate of Origin & EU Phytosanitary Certificate verified.',
+      },
+      {
+        shipmentId: completedShipment.id,
+        status: 'Pickup Scheduled',
+        timestamp: pastDays(16),
+        location: 'Palghar Factory Gate 2',
+        note: 'SwiftGlobe Reefer container truck arrived for loading.',
+      },
+      {
+        shipmentId: completedShipment.id,
+        status: 'Picked Up',
+        timestamp: pastDays(15),
+        location: 'Palghar -> JNPT Port Corridor',
+        note: '500 Sealed drums loaded; cold-chain temperature set to +4°C.',
+      },
+      {
+        shipmentId: completedShipment.id,
+        status: 'Export Customs',
+        timestamp: pastDays(14),
+        location: 'JNPT Customs Terminal, Navi Mumbai',
+        note: 'CHA filed shipping bill; LEO (Let Export Order) granted by Indian Customs.',
+      },
+      {
+        shipmentId: completedShipment.id,
+        status: 'Dispatched',
+        timestamp: pastDays(13),
+        location: 'JNPT Port (Vessel: MV Northern Lights)',
+        note: 'Container loaded onto vessel. Maritime bill of lading issued.',
+      },
+      {
+        shipmentId: completedShipment.id,
+        status: 'In Transit',
+        timestamp: pastDays(8),
+        location: 'Suez Canal Maritime Route',
+        note: 'Vessel in transit according to vessel tracking schedule.',
+      },
+      {
+        shipmentId: completedShipment.id,
+        status: 'Destination Customs',
+        timestamp: pastDays(3),
+        location: 'Hamburg Port Customs, Germany',
+        note: 'EU Phytosanitary & MRL pest inspection cleared.',
+      },
+      {
+        shipmentId: completedShipment.id,
+        status: 'Delivered',
+        timestamp: pastDays(2),
+        location: 'Central Logistics Hub, Hamburg',
+        note: 'Cargo handed over to buyer representative in sound condition.',
+      },
+    ],
+  });
+
+  // 16. Notifications & Audit Logs
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: msmeUser.id,
+        type: 'CRITICAL_ACTION',
+        title: 'Export Readiness Action Required',
+        message: 'Your export profile for UAE has 4 critical blockers (Phytosanitary inspection, Certificate of Origin review, Halal request, Packaging labeling).',
+      },
+      {
+        userId: msmeUser.id,
+        type: 'INFO',
+        title: 'Logistics Quotes Generated',
+        message: '3 logistics quotes are ready for comparison on shipment SHP-2026-AE-001.',
+      },
+    ],
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      actorId: adminUser.id,
+      entityType: 'SystemSeed',
+      entityId: palgharBusiness.id,
+      action: 'INITIALIZE_GOLDEN_DEMO',
+      newValueJson: JSON.stringify({ business: 'Palghar Quality Agro', status: 'Initialized' }),
+    },
+  });
+
+  console.log('✅ Database seeding completed successfully!');
+  console.log(`
+  ══════════════════════════════════════════════════════════
+  🚀 VYAPARFLOW DEMO CREDENTIALS:
+  ----------------------------------------------------------
+  • Palghar MSME Exporter : msme@palghar-exports.com / password123
+  • Service Provider       : provider@freight.com / password123
+  • Certification Lab      : lab@certify.com / password123
+  • Customs CHA Agent      : cha@customs.com / password123
+  • Admin Platform Operator: admin@vyaparflow.com / password123
+  ══════════════════════════════════════════════════════════
+  `);
+}
+
+main()
+  .catch((e) => {
+    console.error('❌ Seeding error:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

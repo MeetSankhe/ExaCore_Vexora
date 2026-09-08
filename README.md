@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VyaparFlow — Export Logistics Readiness Platform
 
-## Getting Started
+> **Export Logistics SaaS Platform for Indian MSMEs**  
+> *Initial Pilot Geography: Palghar Industrial Region, Maharashtra*
 
-First, run the development server:
+VyaparFlow is a SaaS coordination platform designed for Indian MSMEs to convert complex, multi-agency export readiness workflows into one clear, explainable, and trackable digital operating system.
 
+---
+
+## 🚀 Quick Start & Launch Instructions
+
+### 1. Development Server
+The application server is running locally at:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+To restart or run locally from scratch:
+```bash
+# 1. Install dependencies
+npm install
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# 2. Synchronize database schema & seed golden demo dataset
+npx prisma db push
+npx prisma db seed
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# 3. Start Next.js development server
+npm run dev
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🔑 Demo Credentials & Account Switcher
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+VyaparFlow includes an **Account Switcher Dropdown** and quick-role buttons in the top header bar on all screens.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Persona | Email | Password | Primary Workflow |
+| :--- | :--- | :--- | :--- |
+| **Palghar MSME Exporter** | `msme@palghar-exports.com` | `password123` | Palghar Quality Agro Pvt Ltd (Alphonso Mango Pulp → UAE) |
+| **Service Provider** | `provider@freight.com` | `password123` | Freight Forwarder, Certification Lab, CHA Customs Portal |
+| **Platform Admin** | `admin@vyaparflow.com` | `password123` | Compliance Rules Engine Configurator & Audit Logs |
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🏗️ Architecture & Core Components
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Frontend Framework**: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS.
+- **Database & Persistence**: Prisma ORM with SQLite database (`dev.db`).
+- **Deterministic Compliance Rules Engine**: Configures product-country requirements without opaque AI models (`lib/services/readiness.ts`).
+- **Readiness Scoring Engine (0–100)**: Evaluates 5 weighted categories (Business 20%, Documents 25%, Certifications 20%, Packaging 15%, Shipment 20%) with critical dispatch blocker overrides.
+- **Export Document Generator**: Server-side PDF generator (`lib/services/documentGenerator.ts`) for Commercial Invoice and Packing List drafts.
+- **Logistics Rate Engine**: Multi-carrier quote comparison (cost, transit days, inclusions/exclusions).
