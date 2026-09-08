@@ -1,8 +1,8 @@
 import React from 'react';
 import Navbar from '@/components/Navbar';
-import { getActiveUser, updateRuleAction, deleteUserAction } from '@/app/actions';
+import { getActiveUser, updateRuleAction, deleteUserAction, verifyDocumentAction } from '@/app/actions';
 import { prisma } from '@/lib/prisma';
-import { ShieldCheck, Sliders, FileText, AlertTriangle, Users, Ship, Trash2 } from 'lucide-react';
+import { ShieldCheck, Sliders, FileText, AlertTriangle, Users, Ship, Trash2, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
 
 export default async function AdminPage() {
   const { role, user } = await getActiveUser();
@@ -25,6 +25,12 @@ export default async function AdminPage() {
   const auditLogs = await prisma.auditLog.findMany({
     take: 5,
     orderBy: { createdAt: 'desc' },
+  });
+
+  const pendingDocs = await prisma.document.findMany({
+    where: { status: 'under_review' },
+    include: { business: true },
+    orderBy: { uploadedAt: 'desc' },
   });
 
   return (
@@ -68,6 +74,76 @@ export default async function AdminPage() {
             <span className="text-xs text-slate-500 font-semibold">Compliance Dataset Version</span>
             <span className="block text-3xl font-black text-slate-900 font-serif">v2.0 MVP</span>
           </div>
+        </div>
+
+        {/* Pending Document Verification Section */}
+        <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-xs space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 font-serif">
+                Pending Document Verifications ({pendingDocs.length})
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Review and accept or reject documents uploaded by MSME exporters.
+              </p>
+            </div>
+          </div>
+
+          {pendingDocs.length === 0 ? (
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 text-center">
+              No pending documents require verification at this time.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 text-xs">
+              {pendingDocs.map((doc) => (
+                <div key={doc.id} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-orange-600" />
+                      <span className="font-bold text-slate-900 text-sm">{doc.originalName}</span>
+                      <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-md uppercase">
+                        {doc.type.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                    <p className="text-slate-600 font-medium">Business: {doc.business.displayName}</p>
+                    <p className="text-slate-500 text-[11px]">{doc.notes}</p>
+                    <a href={`/${doc.storageKey}`} target="_blank" className="inline-flex items-center gap-1 text-orange-600 hover:underline mt-1 font-semibold">
+                      View Uploaded Document <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <form
+                      action={async () => {
+                        'use server';
+                        await verifyDocumentAction(doc.id, 'verified', 'Document verified by Admin.');
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Accept
+                      </button>
+                    </form>
+                    <form
+                      action={async () => {
+                        'use server';
+                        await verifyDocumentAction(doc.id, 'rejected', 'Document rejected. Please provide a valid proof.');
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <XCircle className="w-3.5 h-3.5" /> Reject
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* User Account Management Section (Create / Delete Accounts) */}
