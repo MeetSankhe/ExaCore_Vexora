@@ -273,55 +273,7 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Second Row: Critical Blockers List & Action Center */}
-        {readinessData && readinessData.blockers.length > 0 && (
-          <div className="bg-white rounded-2xl p-6 border border-amber-200 shadow-xs space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
-                  !
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 font-serif">
-                    Critical Dispatch Blockers ({readinessData.blockers.length})
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    These missing or pending items override numerical readiness score and block shipment dispatch.
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-                Action Required
-              </span>
-            </div>
 
-            <div className="divide-y divide-slate-100">
-              {readinessData.blockers.map((blocker) => (
-                <div key={blocker.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900">{blocker.title}</span>
-                      <span className="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-md uppercase">
-                        {blocker.priority}
-                      </span>
-                      <span className="text-[10px] bg-slate-100 text-slate-600 font-medium px-2 py-0.5 rounded-md capitalize">
-                        {blocker.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600">{blocker.reason}</p>
-                  </div>
-
-                  <Link
-                    href={blocker.actionUrl}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shrink-0 shadow-xs transition-colors"
-                  >
-                    Resolve Blocker <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Third Row: Active Shipment Card */}
         <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-xs space-y-6">
