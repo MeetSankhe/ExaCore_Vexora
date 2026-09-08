@@ -232,7 +232,20 @@ export async function updatePackagingItemAction(itemId: string, status: 'complet
 
 export async function createShipmentAction(formData: FormData): Promise<void> {
   const businessId = formData.get('businessId') as string;
-  const productId = formData.get('productId') as string;
+  const productName = formData.get('productName') as string;
+
+  let product = await prisma.product.findFirst({
+    where: { businessId, name: productName },
+  });
+
+  if (!product) {
+    product = await prisma.product.findFirst({
+      where: { businessId },
+    });
+  }
+
+  if (!product) throw new Error('No product found');
+  const productId = product.id;
   const destinationCountryId = formData.get('destinationCountryId') as string;
   const destinationCity = (formData.get('destinationCity') as string) || 'Dubai';
   const value = parseFloat((formData.get('value') as string) || '1500000');

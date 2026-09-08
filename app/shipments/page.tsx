@@ -87,17 +87,20 @@ export default async function ShipmentsPage() {
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Export Product</label>
-                  <select
-                    name="productId"
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium"
+                  <input
+                    type="text"
+                    name="productName"
+                    list="product-suggestions"
+                    defaultValue={products[0]?.name || ''}
+                    placeholder="Type product name..."
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium text-xs"
                     required
-                  >
+                  />
+                  <datalist id="product-suggestions">
                     {products.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} (HS: {p.hsCode})
-                      </option>
+                      <option key={p.id} value={p.name} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
 
                 <div>
