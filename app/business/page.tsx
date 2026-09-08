@@ -1,13 +1,32 @@
 import React from 'react';
 import Navbar from '@/components/Navbar';
+import BusinessRegistrationsForm from '@/components/BusinessRegistrationsForm';
 import { getActiveUser, getAllUsers, updateBusinessRegistrationsAction, verifyDocumentAction } from '@/app/actions';
 import { prisma } from '@/lib/prisma';
-import { Building2, MapPin, CheckCircle2, ShieldCheck, Upload, FileText, AlertTriangle, Clock, XCircle } from 'lucide-react';
+import { Building2, MapPin, CheckCircle2, ShieldCheck, Upload, FileText, AlertTriangle, Clock, XCircle, Eye } from 'lucide-react';
 
 export default async function BusinessPage() {
   const { role, user } = await getActiveUser();
   const allUsers = await getAllUsers();
-  const business = user?.businesses[0];
+  
+  // If the logged-in user doesn't own a business (e.g. Admin or Provider),
+  // pick the primary demo MSME business so the page renders properly and actions don't fail.
+  let business = user?.businesses?.[0];
+  if (!business) {
+    business = await prisma.business.findFirst({
+      include: {
+        products: {
+          include: {
+            destinations: {
+              include: {
+                country: true,
+              },
+            },
+          },
+        },
+      },
+    }) as any;
+  }
 
   const gstDone = business?.gstStatus?.toLowerCase().includes('active') || business?.gstStatus?.toLowerCase().includes('verified');
   const iecDone = business?.iecStatus?.toLowerCase().includes('active') || business?.iecStatus?.toLowerCase().includes('verified');
@@ -150,78 +169,12 @@ export default async function BusinessPage() {
               </div>
             </div>
 
-            <form action={updateBusinessRegistrationsAction} className="space-y-5 text-xs">
-              <input type="hidden" name="businessId" value={business?.id || ''} />
-
-              <div className="space-y-3 p-4 rounded-xl border border-slate-200 bg-[#FAF9F6]">
-                <span className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-orange-600" /> GSTIN Registration
-                </span>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Enter GSTIN Number (15 Characters)</label>
-                  <input
-                    type="text"
-                    name="gstNumber"
-                    placeholder="e.g. 27AAACP1234F1Z5"
-                    pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[A-Za-z0-9]{1}[Zz]{1}[A-Za-z0-9]{1}"
-                    title="GSTIN format: 2 digits + 5 letters (PAN) + 4 digits + 1 letter + 1 alphanumeric + Z + 1 alphanumeric"
-                    maxLength={15}
-                    minLength={15}
-                    defaultValue={business?.gstStatus?.includes('(') ? business.gstStatus.split('(')[1].replace(')', '') : ''}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium text-xs uppercase invalid:[&:not(:placeholder-shown)]:border-red-400"
-                    required
-                  />
-                  <p className="text-[10px] text-slate-500 mt-0.5">Format: 2 digits + 5 letters + 4 digits + 1 letter + 1 alphanumeric + Z + 1 alphanumeric</p>
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Upload GST Certificate (PDF/JPG)</label>
-                  <input
-                    type="file"
-                    name="gstFile"
-                    accept=".pdf,.png,.jpg,.jpeg"
-                    className="w-full p-2 rounded-xl border border-slate-300 bg-white text-slate-600 text-xs cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3 p-4 rounded-xl border border-slate-200 bg-[#FAF9F6]">
-                <span className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-orange-600" /> Import Export Code (IEC)
-                </span>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Enter DGFT IEC Code (10 Digits)</label>
-                  <input
-                    type="text"
-                    name="iecCode"
-                    placeholder="e.g. 0301099882"
-                    pattern="[0-9]{10}"
-                    title="IEC Code must be exactly 10 digits"
-                    maxLength={10}
-                    minLength={10}
-                    defaultValue={business?.iecStatus?.includes('(') ? business.iecStatus.split('(')[1].replace(')', '') : ''}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium text-xs uppercase invalid:[&:not(:placeholder-shown)]:border-red-400"
-                    required
-                  />
-                  <p className="text-[10px] text-slate-500 mt-0.5">Must be exactly 10 digits (e.g. 0301099882)</p>
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Upload IEC Certificate (PDF/JPG)</label>
-                  <input
-                    type="file"
-                    name="iecFile"
-                    accept=".pdf,.png,.jpg,.jpeg"
-                    className="w-full p-2 rounded-xl border border-slate-300 bg-white text-slate-600 text-xs cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow-md transition-colors cursor-pointer"
-              >
-                Submit Registration Proofs & Recalculate Score →
-              </button>
-            </form>
+            <BusinessRegistrationsForm
+              businessId={business?.id || ''}
+              defaultGstin={business?.gstStatus?.includes('(') ? business.gstStatus.split('(')[1].replace(')', '') : ''}
+              defaultIec={business?.iecStatus?.includes('(') ? business.iecStatus.split('(')[1].replace(')', '') : ''}
+              action={updateBusinessRegistrationsAction}
+            />
           </div>
         </div>
 
@@ -275,37 +228,50 @@ export default async function BusinessPage() {
                       </p>
                     </div>
 
-                    {/* Admin Accept/Reject Buttons */}
-                    {role === 'ADMIN' && doc.status === 'under_review' && (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <form
-                          action={async () => {
-                            'use server';
-                            await verifyDocumentAction(doc.id, 'verified', 'GSTIN proof verified by Platform Admin.');
-                          }}
-                        >
-                          <button
-                            type="submit"
-                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* View / Open Document button */}
+                      <a
+                        href={`/api/documents/${doc.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 border border-slate-300"
+                        title="Open and preview official uploaded document"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-slate-600" /> View Document
+                      </a>
+
+                      {/* Admin Accept/Reject Buttons */}
+                      {role === 'ADMIN' && doc.status === 'under_review' && (
+                        <>
+                          <form
+                            action={async () => {
+                              'use server';
+                              await verifyDocumentAction(doc.id, 'verified', 'GSTIN proof verified by Platform Admin.');
+                            }}
                           >
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Accept
-                          </button>
-                        </form>
-                        <form
-                          action={async () => {
-                            'use server';
-                            await verifyDocumentAction(doc.id, 'rejected', 'GSTIN proof rejected. Please re-upload valid certificate.');
-                          }}
-                        >
-                          <button
-                            type="submit"
-                            className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                            <button
+                              type="submit"
+                              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Accept
+                            </button>
+                          </form>
+                          <form
+                            action={async () => {
+                              'use server';
+                              await verifyDocumentAction(doc.id, 'rejected', 'GSTIN proof rejected. Please re-upload valid certificate.');
+                            }}
                           >
-                            <XCircle className="w-3.5 h-3.5" /> Reject
-                          </button>
-                        </form>
-                      </div>
-                    )}
+                            <button
+                              type="submit"
+                              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                            >
+                              <XCircle className="w-3.5 h-3.5" /> Reject
+                            </button>
+                          </form>
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -346,37 +312,50 @@ export default async function BusinessPage() {
                       </p>
                     </div>
 
-                    {/* Admin Accept/Reject Buttons */}
-                    {role === 'ADMIN' && doc.status === 'under_review' && (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <form
-                          action={async () => {
-                            'use server';
-                            await verifyDocumentAction(doc.id, 'verified', 'IEC proof verified by Platform Admin.');
-                          }}
-                        >
-                          <button
-                            type="submit"
-                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* View / Open Document button */}
+                      <a
+                        href={`/api/documents/${doc.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 border border-slate-300"
+                        title="Open and preview official uploaded document"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-slate-600" /> View Document
+                      </a>
+
+                      {/* Admin Accept/Reject Buttons */}
+                      {role === 'ADMIN' && doc.status === 'under_review' && (
+                        <>
+                          <form
+                            action={async () => {
+                              'use server';
+                              await verifyDocumentAction(doc.id, 'verified', 'IEC proof verified by Platform Admin.');
+                            }}
                           >
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Accept
-                          </button>
-                        </form>
-                        <form
-                          action={async () => {
-                            'use server';
-                            await verifyDocumentAction(doc.id, 'rejected', 'IEC proof rejected. Please re-upload valid certificate.');
-                          }}
-                        >
-                          <button
-                            type="submit"
-                            className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                            <button
+                              type="submit"
+                              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Accept
+                            </button>
+                          </form>
+                          <form
+                            action={async () => {
+                              'use server';
+                              await verifyDocumentAction(doc.id, 'rejected', 'IEC proof rejected. Please re-upload valid certificate.');
+                            }}
                           >
-                            <XCircle className="w-3.5 h-3.5" /> Reject
-                          </button>
-                        </form>
-                      </div>
-                    )}
+                            <button
+                              type="submit"
+                              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                            >
+                              <XCircle className="w-3.5 h-3.5" /> Reject
+                            </button>
+                          </form>
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

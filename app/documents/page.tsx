@@ -174,6 +174,17 @@ export default async function DocumentsPage() {
 
                   {/* Actions for Admin vs MSME */}
                   <div className="flex items-center gap-2 shrink-0">
+                    {/* View / Open Document */}
+                    <a
+                      href={`/api/documents/${doc.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 shadow-xs border border-slate-300 transition-colors"
+                      title="Open and preview uploaded document"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-slate-600" /> View Document
+                    </a>
+
                     {role === 'ADMIN' && doc.status === 'under_review' && (
                       <div className="flex items-center gap-2">
                         <form
