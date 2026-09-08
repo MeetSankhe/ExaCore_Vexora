@@ -5,7 +5,7 @@ import { calculateReadinessScore } from '@/lib/services/readiness';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import fs from 'fs';
+import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import {
   BUSINESS_TYPE_CONFIGS,
@@ -13,6 +13,22 @@ import {
   validateIEC,
   type BusinessType,
 } from '@/lib/businessTypeConfig';
+
+async function saveFileLocally(file: File | null, prefix: string): Promise<{ storageKey: string, size: number, name: string } | null> {
+  if (!file || file.size === 0) return null;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const filename = `${prefix}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+  
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+  try {
+    await mkdir(uploadDir, { recursive: true });
+  } catch (e) {}
+
+  const filepath = path.join(uploadDir, filename);
+  await writeFile(filepath, buffer);
+  
+  return { storageKey: `uploads/${filename}`, size: file.size, name: file.name };
+}
 
 
 // Cookie key for active persona
@@ -27,78 +43,61 @@ export async function getActiveUser(): Promise<{
   const userIdVal = cookieStore.get(USER_ID_COOKIE)?.value;
   const roleVal = cookieStore.get(PERSONA_COOKIE)?.value;
 
-  if (userIdVal) {
-    const customUser = await prisma.user.findUnique({
+  if (userIdVal && roleVal) {
+    const user = await prisma.user.findUnique({
       where: { id: userIdVal },
-      include: {
-        businesses: {
-          include: {
-            products: {
-              include: {
-                destinations: {
-                  include: {
-                    country: true,
-                  },
-                },
-              },
-            },
-          },
+      include: { 
+        businesses: { 
+          include: { 
+            products: { 
+              include: { 
+                destinations: { include: { country: true } } 
+              } 
+            } 
+          } 
         },
-        providers: true,
+        providers: true 
       },
     });
-
-    if (customUser) {
-      return { user: customUser, role: customUser.role as 'MSME' | 'PROVIDER' | 'ADMIN' };
+    if (user) {
+      return { user, role: roleVal as 'MSME' | 'PROVIDER' | 'ADMIN' };
     }
   }
 
-  let role: 'MSME' | 'PROVIDER' | 'ADMIN' = 'MSME';
-  if (roleVal === 'PROVIDER') role = 'PROVIDER';
-  if (roleVal === 'ADMIN') role = 'ADMIN';
-
-  let email = 'msme@palghar-exports.com';
-  if (role === 'PROVIDER') email = 'provider@freight.com';
-  if (role === 'ADMIN') email = 'admin@vyaparflow.com';
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: {
-      businesses: {
-        include: {
-          products: {
-            include: {
-              destinations: {
-                include: {
-                  country: true,
-                },
-              },
-            },
-          },
-        },
+  // Fallback to demo user if no cookie or user not found
+  const demoMsme = await prisma.user.findFirst({
+    where: { role: 'MSME' },
+    include: { 
+      businesses: { 
+        include: { 
+          products: { 
+            include: { 
+              destinations: { include: { country: true } } 
+            } 
+          } 
+        } 
       },
-      providers: true,
+      providers: true
     },
   });
 
-  return { user, role };
+  return { user: demoMsme, role: 'MSME' };
 }
 
 export async function switchUserRoleAction(role: 'MSME' | 'PROVIDER' | 'ADMIN'): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.set(PERSONA_COOKIE, role, { path: '/' });
-  cookieStore.delete(USER_ID_COOKIE);
-  revalidatePath('/', 'layout');
+  cookieStore.set(PERSONA_COOKIE, role);
+  revalidatePath('/');
 }
 
 export async function switchUserAccountAction(userId: string): Promise<void> {
   const cookieStore = await cookies();
-  const targetUser = await prisma.user.findUnique({ where: { id: userId } });
-  if (targetUser) {
-    cookieStore.set(USER_ID_COOKIE, targetUser.id, { path: '/' });
-    cookieStore.set(PERSONA_COOKIE, targetUser.role, { path: '/' });
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (user) {
+    cookieStore.set(USER_ID_COOKIE, user.id);
+    cookieStore.set(PERSONA_COOKIE, user.role);
+    revalidatePath('/');
   }
-  revalidatePath('/', 'layout');
 }
 
 export async function uploadDocumentAction(formData: FormData): Promise<void> {
@@ -112,22 +111,9 @@ export async function uploadDocumentAction(formData: FormData): Promise<void> {
     throw new Error('Business ID is required for document upload');
   }
 
-  const filename = file?.name || `${docType}_Sample_Evidence.pdf`;
-  const storageKey = `uploads/${Date.now()}_${filename.replace(/\s+/g, '_')}`;
-  let fileSize = 256000;
-  if (file && typeof file.arrayBuffer === 'function') {
-    try {
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      const buffer = Buffer.from(await file.arrayBuffer());
-      fs.writeFileSync(path.join(process.cwd(), 'public', storageKey), buffer);
-      fileSize = buffer.length;
-    } catch (e) {
-      console.error('Failed to save file to public/uploads:', e);
-    }
-  }
+  const saved = await saveFileLocally(file, docType || 'doc');
+  const filename = saved?.name || file?.name || `${docType}_Sample_Evidence.pdf`;
+  const storageKey = saved?.storageKey || `uploads/${Date.now()}_${filename.replace(/\s+/g, '_')}`;
 
   await prisma.document.create({
     data: {
@@ -137,7 +123,7 @@ export async function uploadDocumentAction(formData: FormData): Promise<void> {
       storageKey,
       originalName: filename,
       mimeType: file?.type || 'application/pdf',
-      size: file?.size || fileSize,
+      size: saved?.size || file?.size || 256000,
       issueDate: new Date(),
       expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       status: 'under_review',
@@ -249,7 +235,20 @@ export async function updatePackagingItemAction(itemId: string, status: 'complet
 
 export async function createShipmentAction(formData: FormData): Promise<void> {
   const businessId = formData.get('businessId') as string;
-  const productId = formData.get('productId') as string;
+  const productName = formData.get('productName') as string;
+
+  let product = await prisma.product.findFirst({
+    where: { businessId, name: productName },
+  });
+
+  if (!product) {
+    product = await prisma.product.findFirst({
+      where: { businessId },
+    });
+  }
+
+  if (!product) throw new Error('No product found');
+  const productId = product.id;
   const destinationCountryId = formData.get('destinationCountryId') as string;
   const destinationCity = (formData.get('destinationCity') as string) || 'Dubai';
   const value = parseFloat((formData.get('value') as string) || '1500000');
@@ -868,29 +867,17 @@ export async function updateBusinessRegistrationsAction(formData: FormData): Pro
               data: { status: 'verified', reason: `GSTIN verified: ${gstNumber}` },
             });
 
-            const gstStorageKey = `uploads/gst_${Date.now()}.pdf`;
-            let gstSize = 150000;
-            if (gstFile && typeof gstFile.arrayBuffer === 'function' && gstFile.size > 0) {
-              try {
-                const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-                if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-                const buf = Buffer.from(await gstFile.arrayBuffer());
-                fs.writeFileSync(path.join(process.cwd(), 'public', gstStorageKey), buf);
-                gstSize = buf.length;
-              } catch (e) {
-                console.error('Failed to write gstFile:', e);
-              }
-            }
+            const gstSaved = await saveFileLocally(gstFile, 'gst');
 
             await prisma.document.create({
               data: {
                 businessId: targetBusinessId,
                 requirementId: req.id,
                 type: 'GST_CERTIFICATE',
-                storageKey: gstStorageKey,
-                originalName: gstFile?.name || 'GSTIN_Certificate.pdf',
+                storageKey: gstSaved?.storageKey || `uploads/gst_${Date.now()}.pdf`,
+                originalName: gstSaved?.name || gstFile?.name || 'GSTIN_Certificate.pdf',
                 mimeType: gstFile?.type || 'application/pdf',
-                size: gstSize,
+                size: gstSaved?.size || gstFile?.size || 150000,
                 status: 'verified',
                 notes: `GSTIN: ${gstNumber}`,
               },
@@ -903,29 +890,17 @@ export async function updateBusinessRegistrationsAction(formData: FormData): Pro
               data: { status: 'verified', reason: `IEC Code verified: ${iecCode}` },
             });
 
-            const iecStorageKey = `uploads/iec_${Date.now()}.pdf`;
-            let iecSize = 150000;
-            if (iecFile && typeof iecFile.arrayBuffer === 'function' && iecFile.size > 0) {
-              try {
-                const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-                if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-                const buf = Buffer.from(await iecFile.arrayBuffer());
-                fs.writeFileSync(path.join(process.cwd(), 'public', iecStorageKey), buf);
-                iecSize = buf.length;
-              } catch (e) {
-                console.error('Failed to write iecFile:', e);
-              }
-            }
+            const iecSaved = await saveFileLocally(iecFile, 'iec');
 
             await prisma.document.create({
               data: {
                 businessId: targetBusinessId,
                 requirementId: req.id,
                 type: 'IEC_CERTIFICATE',
-                storageKey: iecStorageKey,
-                originalName: iecFile?.name || 'IEC_Certificate.pdf',
+                storageKey: iecSaved?.storageKey || `uploads/iec_${Date.now()}.pdf`,
+                originalName: iecSaved?.name || iecFile?.name || 'IEC_Certificate.pdf',
                 mimeType: iecFile?.type || 'application/pdf',
-                size: iecSize,
+                size: iecSaved?.size || iecFile?.size || 150000,
                 status: 'verified',
                 notes: `IEC Code: ${iecCode}`,
               },

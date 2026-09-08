@@ -49,27 +49,7 @@ export default async function ShipmentsPage() {
           </div>
         </div>
 
-        {/* Readiness Dispatch Check Banner */}
-        {readiness && readiness.blockers.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-start gap-3">
-              <AlertOctagon className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="text-xs space-y-1">
-                <span className="font-bold text-amber-900 text-sm">Dispatch Gate Notice: 4 Active Blockers</span>
-                <p className="text-amber-800">
-                  You can create a draft shipment, but dispatch transition will remain blocked until critical readiness requirements are verified.
-                </p>
-              </div>
-            </div>
 
-            <Link
-              href="/readiness"
-              className="px-4 py-2 rounded-xl bg-amber-600 text-white font-bold text-xs hover:bg-amber-700 transition-colors shrink-0"
-            >
-              Resolve Readiness Blockers →
-            </Link>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Create New Shipment Form (For MSME) */}
@@ -87,17 +67,20 @@ export default async function ShipmentsPage() {
 
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Export Product</label>
-                  <select
-                    name="productId"
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium"
+                  <input
+                    type="text"
+                    name="productName"
+                    list="product-suggestions"
+                    defaultValue={products[0]?.name || ''}
+                    placeholder="Type product name..."
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium text-xs"
                     required
-                  >
+                  />
+                  <datalist id="product-suggestions">
                     {products.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} (HS: {p.hsCode})
-                      </option>
+                      <option key={p.id} value={p.name} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
 
                 <div>
