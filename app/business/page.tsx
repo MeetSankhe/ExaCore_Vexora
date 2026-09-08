@@ -1,7 +1,8 @@
 import React from 'react';
 import Navbar from '@/components/Navbar';
-import { getActiveUser, getAllUsers, updateBusinessRegistrationsAction } from '@/app/actions';
-import { Building2, MapPin, CheckCircle2, ShieldCheck, Upload, FileText, AlertTriangle } from 'lucide-react';
+import { getActiveUser, getAllUsers, updateBusinessRegistrationsAction, verifyDocumentAction } from '@/app/actions';
+import { prisma } from '@/lib/prisma';
+import { Building2, MapPin, CheckCircle2, ShieldCheck, Upload, FileText, AlertTriangle, Clock, XCircle } from 'lucide-react';
 
 export default async function BusinessPage() {
   const { role, user } = await getActiveUser();
@@ -10,6 +11,55 @@ export default async function BusinessPage() {
 
   const gstDone = business?.gstStatus?.toLowerCase().includes('active') || business?.gstStatus?.toLowerCase().includes('verified');
   const iecDone = business?.iecStatus?.toLowerCase().includes('active') || business?.iecStatus?.toLowerCase().includes('verified');
+
+  // Fetch GSTIN and IEC proof documents for this business
+  const gstProofDocs = business
+    ? await prisma.document.findMany({
+        where: {
+          businessId: business.id,
+          type: 'GST_CERTIFICATE',
+        },
+        include: { requirement: true },
+        orderBy: { uploadedAt: 'desc' },
+      })
+    : [];
+
+  const iecProofDocs = business
+    ? await prisma.document.findMany({
+        where: {
+          businessId: business.id,
+          type: 'IEC_CERTIFICATE',
+        },
+        include: { requirement: true },
+        orderBy: { uploadedAt: 'desc' },
+      })
+    : [];
+
+  const statusBadge = (status: string) => {
+    if (status === 'verified')
+      return (
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1 w-fit">
+          <CheckCircle2 className="w-3 h-3" /> Verified by Admin
+        </span>
+      );
+    if (status === 'under_review')
+      return (
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-300 flex items-center gap-1 w-fit">
+          <Clock className="w-3 h-3" /> Under Review
+        </span>
+      );
+    if (status === 'rejected')
+      return (
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-300 flex items-center gap-1 w-fit">
+          <XCircle className="w-3 h-3" /> Rejected
+        </span>
+      );
+    return (
+      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1 w-fit">
+        <AlertTriangle className="w-3 h-3" /> Pending Upload
+      </span>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-slate-900 pb-16 font-sans">
@@ -108,15 +158,20 @@ export default async function BusinessPage() {
                   <FileText className="w-4 h-4 text-orange-600" /> GSTIN Registration
                 </span>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Enter GSTIN Number (15 Digits)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Enter GSTIN Number (15 Characters)</label>
                   <input
                     type="text"
                     name="gstNumber"
                     placeholder="e.g. 27AAACP1234F1Z5"
+                    pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[A-Za-z0-9]{1}[Zz]{1}[A-Za-z0-9]{1}"
+                    title="GSTIN format: 2 digits + 5 letters (PAN) + 4 digits + 1 letter + 1 alphanumeric + Z + 1 alphanumeric"
+                    maxLength={15}
+                    minLength={15}
                     defaultValue={business?.gstStatus?.includes('(') ? business.gstStatus.split('(')[1].replace(')', '') : ''}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium text-xs"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium text-xs uppercase invalid:[&:not(:placeholder-shown)]:border-red-400"
                     required
                   />
+                  <p className="text-[10px] text-slate-500 mt-0.5">Format: 2 digits + 5 letters + 4 digits + 1 letter + 1 alphanumeric + Z + 1 alphanumeric</p>
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Upload GST Certificate (PDF/JPG)</label>
@@ -139,10 +194,15 @@ export default async function BusinessPage() {
                     type="text"
                     name="iecCode"
                     placeholder="e.g. 0301099882"
+                    pattern="[0-9]{10}"
+                    title="IEC Code must be exactly 10 digits"
+                    maxLength={10}
+                    minLength={10}
                     defaultValue={business?.iecStatus?.includes('(') ? business.iecStatus.split('(')[1].replace(')', '') : ''}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium text-xs"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium text-xs uppercase invalid:[&:not(:placeholder-shown)]:border-red-400"
                     required
                   />
+                  <p className="text-[10px] text-slate-500 mt-0.5">Must be exactly 10 digits (e.g. 0301099882)</p>
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Upload IEC Certificate (PDF/JPG)</label>
@@ -162,6 +222,165 @@ export default async function BusinessPage() {
                 Submit Registration Proofs & Recalculate Score →
               </button>
             </form>
+          </div>
+        </div>
+
+        {/* GSTIN & IEC Proof Verification Status (visible to all, admin can act) */}
+        <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-xs space-y-6">
+          <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
+            <ShieldCheck className="w-6 h-6 text-orange-600" />
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 font-serif">
+                GSTIN & IEC Proof Verification
+              </h3>
+              <p className="text-xs text-slate-500">
+                {role === 'ADMIN'
+                  ? 'Review and accept or reject GSTIN/IEC proof documents submitted by MSME exporters.'
+                  : 'Your proof documents are submitted for admin verification. Status updates will appear here.'}
+              </p>
+            </div>
+          </div>
+
+          {/* GSTIN Proof Section */}
+          <div className="space-y-4">
+            <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+              <FileText className="w-4 h-4 text-orange-600" /> GSTIN Certificate Proofs
+            </h4>
+
+            {gstProofDocs.length === 0 ? (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                No GSTIN proof documents uploaded yet. Use the form above to submit your GSTIN certificate.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {gstProofDocs.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className={`p-4 rounded-xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 ${
+                      doc.status === 'verified'
+                        ? 'bg-emerald-50/60 border-emerald-200'
+                        : doc.status === 'rejected'
+                        ? 'bg-red-50/60 border-red-200'
+                        : 'bg-blue-50/60 border-blue-200'
+                    }`}
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900">{doc.originalName}</span>
+                        {statusBadge(doc.status)}
+                      </div>
+                      <p className="text-[11px] text-slate-600">{doc.notes}</p>
+                      <p className="text-[10px] text-slate-400">
+                        Uploaded: {doc.uploadedAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+
+                    {/* Admin Accept/Reject Buttons */}
+                    {role === 'ADMIN' && doc.status === 'under_review' && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <form
+                          action={async () => {
+                            'use server';
+                            await verifyDocumentAction(doc.id, 'verified', 'GSTIN proof verified by Platform Admin.');
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Accept
+                          </button>
+                        </form>
+                        <form
+                          action={async () => {
+                            'use server';
+                            await verifyDocumentAction(doc.id, 'rejected', 'GSTIN proof rejected. Please re-upload valid certificate.');
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Reject
+                          </button>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* IEC Proof Section */}
+          <div className="space-y-4">
+            <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+              <FileText className="w-4 h-4 text-orange-600" /> IEC Certificate Proofs
+            </h4>
+
+            {iecProofDocs.length === 0 ? (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                No IEC proof documents uploaded yet. Use the form above to submit your IEC certificate.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {iecProofDocs.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className={`p-4 rounded-xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 ${
+                      doc.status === 'verified'
+                        ? 'bg-emerald-50/60 border-emerald-200'
+                        : doc.status === 'rejected'
+                        ? 'bg-red-50/60 border-red-200'
+                        : 'bg-blue-50/60 border-blue-200'
+                    }`}
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900">{doc.originalName}</span>
+                        {statusBadge(doc.status)}
+                      </div>
+                      <p className="text-[11px] text-slate-600">{doc.notes}</p>
+                      <p className="text-[10px] text-slate-400">
+                        Uploaded: {doc.uploadedAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+
+                    {/* Admin Accept/Reject Buttons */}
+                    {role === 'ADMIN' && doc.status === 'under_review' && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <form
+                          action={async () => {
+                            'use server';
+                            await verifyDocumentAction(doc.id, 'verified', 'IEC proof verified by Platform Admin.');
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Accept
+                          </button>
+                        </form>
+                        <form
+                          action={async () => {
+                            'use server';
+                            await verifyDocumentAction(doc.id, 'rejected', 'IEC proof rejected. Please re-upload valid certificate.');
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Reject
+                          </button>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>

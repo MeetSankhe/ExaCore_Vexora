@@ -130,6 +130,28 @@ export default async function LoginPage() {
               </select>
             </div>
 
+            {/* Business Type / Industry Selector */}
+            <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 space-y-2">
+              <span className="font-bold text-blue-900 text-xs flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-blue-600" /> Type of Business *
+              </span>
+              <select
+                name="businessCategory"
+                className="w-full p-2.5 rounded-xl border border-blue-300 bg-white font-medium text-xs"
+                required
+              >
+                <option value="">— Select your business type —</option>
+                <option value="Steel">🏗️ Steel & Metal Products</option>
+                <option value="Food">🍱 Food & Processed Foods</option>
+                <option value="Agricultural Goods">🌾 Agricultural Goods</option>
+                <option value="Diamonds">💎 Diamonds & Precious Stones</option>
+                <option value="Gold">🪙 Gold & Precious Metals</option>
+              </select>
+              <p className="text-[10px] text-blue-700">
+                Your certificates, documents, and compliance requirements will be generated based on this selection.
+              </p>
+            </div>
+
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Business / Company Name *</label>
               <input
@@ -141,7 +163,7 @@ export default async function LoginPage() {
               />
             </div>
 
-            {/* Compulsory GSTIN & IEC Fields */}
+            {/* Compulsory GSTIN & IEC Fields with Format Validation */}
             <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200 space-y-3">
               <span className="font-bold text-orange-900 text-xs flex items-center gap-1.5">
                 <FileText className="w-4 h-4 text-orange-600" /> Mandatory Government Registrations
@@ -149,15 +171,20 @@ export default async function LoginPage() {
 
               <div>
                 <label className="block font-semibold text-slate-800 mb-1">
-                  GSTIN Number (15 Digits) <span className="text-red-600 font-bold">* Compulsory</span>
+                  GSTIN Number (15 Characters) <span className="text-red-600 font-bold">* Compulsory</span>
                 </label>
                 <input
                   type="text"
                   name="gstNumber"
                   placeholder="e.g. 27AAACP1234F1Z5"
-                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium uppercase text-xs"
+                  pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}[A-Za-z0-9]{1}[Zz]{1}[A-Za-z0-9]{1}"
+                  title="GSTIN format: 2 digits (state code) + 5 letters (PAN) + 4 digits + 1 letter + 1 alphanumeric + Z + 1 alphanumeric. Example: 27AAACP1234F1Z5"
+                  maxLength={15}
+                  minLength={15}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium uppercase text-xs invalid:[&:not(:placeholder-shown)]:border-red-400 invalid:[&:not(:placeholder-shown)]:bg-red-50/50"
                   required
                 />
+                <p className="text-[10px] text-slate-500 mt-0.5">Format: 2 digits + 5 letters + 4 digits + 1 letter + 1 alphanumeric + Z + 1 alphanumeric</p>
               </div>
 
               <div>
@@ -168,9 +195,14 @@ export default async function LoginPage() {
                   type="text"
                   name="iecCode"
                   placeholder="e.g. 0301099882"
-                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium uppercase text-xs"
+                  pattern="[0-9]{10}"
+                  title="IEC Code must be exactly 10 digits. Example: 0301099882"
+                  maxLength={10}
+                  minLength={10}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-medium uppercase text-xs invalid:[&:not(:placeholder-shown)]:border-red-400 invalid:[&:not(:placeholder-shown)]:bg-red-50/50"
                   required
                 />
+                <p className="text-[10px] text-slate-500 mt-0.5">Must be exactly 10 digits (e.g. 0301099882)</p>
               </div>
             </div>
 

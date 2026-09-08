@@ -4,6 +4,13 @@ import { prisma } from '@/lib/prisma';
 import { calculateReadinessScore } from '@/lib/services/readiness';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import {
+  BUSINESS_TYPE_CONFIGS,
+  validateGSTIN,
+  validateIEC,
+  type BusinessType,
+} from '@/lib/businessTypeConfig';
+
 
 // Cookie key for active persona
 const PERSONA_COOKIE = 'vyaparflow_active_role';
@@ -417,8 +424,9 @@ export async function registerUserAction(formData: FormData): Promise<void> {
   const businessName = (formData.get('businessName') as string) || `${name} Exports Pvt Ltd`;
   const city = (formData.get('city') as string) || 'Palghar';
   const state = (formData.get('state') as string) || 'Maharashtra';
-  const gstNumber = formData.get('gstNumber') as string;
-  const iecCode = formData.get('iecCode') as string;
+  const gstNumber = (formData.get('gstNumber') as string) || '';
+  const iecCode = (formData.get('iecCode') as string) || '';
+  const businessCategory = (formData.get('businessCategory') as string) || '';
 
   // Check if user already exists
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -427,8 +435,26 @@ export async function registerUserAction(formData: FormData): Promise<void> {
   }
 
   if (role === 'MSME') {
+    // Validate GSTIN & IEC are provided
     if (!gstNumber || !iecCode) {
       throw new Error('GSTIN Number and IEC Code are compulsory fields for MSME exporters.');
+    }
+
+    // Server-side GSTIN format verification
+    const gstValidation = validateGSTIN(gstNumber);
+    if (!gstValidation.valid) {
+      throw new Error(`GSTIN Verification Failed: ${gstValidation.error}`);
+    }
+
+    // Server-side IEC format verification
+    const iecValidation = validateIEC(iecCode);
+    if (!iecValidation.valid) {
+      throw new Error(`IEC Verification Failed: ${iecValidation.error}`);
+    }
+
+    // Validate business category
+    if (!businessCategory || !(businessCategory in BUSINESS_TYPE_CONFIGS)) {
+      throw new Error('Please select a valid business type (Steel, Food, Agricultural Goods, Diamonds, or Gold).');
     }
   }
 
@@ -443,35 +469,44 @@ export async function registerUserAction(formData: FormData): Promise<void> {
   });
 
   if (role === 'MSME') {
+    const bizType = businessCategory as BusinessType;
+    const config = BUSINESS_TYPE_CONFIGS[bizType];
+
     // Create Business with registered GSTIN and IEC numbers
     const business = await prisma.business.create({
       data: {
         ownerUserId: newUser.id,
         legalName: `${businessName} Pvt Ltd`,
         displayName: businessName,
-        businessType: 'MSME Exporter',
+        businessType: config.businessTypeLabel,
         location: `${city} Industrial Area`,
         city,
         state,
-        gstStatus: `Registered (${gstNumber})`,
-        iecStatus: `Registered (${iecCode})`,
+        gstStatus: `Verified (${gstNumber.toUpperCase()})`,
+        iecStatus: `Verified (${iecCode})`,
         profileCompletion: 60,
       },
     });
 
-    // Create Default Product & ProductCountry Mapping
-    const defaultCategory = await prisma.productCategory.findFirst();
+    // Find matching ProductCategory for this business type
+    const matchingCategory = await prisma.productCategory.findFirst({
+      where: {
+        name: { contains: config.categoryMatch },
+      },
+    });
+
     const defaultCountry = await prisma.country.findFirst({ where: { isoCode: 'AE' } });
 
-    if (defaultCategory && defaultCountry) {
+    if (matchingCategory && defaultCountry) {
+      // Create default product based on business type
       const product = await prisma.product.create({
         data: {
           businessId: business.id,
-          categoryId: defaultCategory.id,
-          name: 'Export Quality Processed Goods',
-          hsCode: '2008.99.11',
-          unit: 'MT',
-          defaultValue: 1200000,
+          categoryId: matchingCategory.id,
+          name: config.defaultProduct.name,
+          hsCode: config.defaultProduct.hsCode,
+          unit: config.defaultProduct.unit,
+          defaultValue: config.defaultProduct.defaultValue,
         },
       });
 
@@ -482,8 +517,8 @@ export async function registerUserAction(formData: FormData): Promise<void> {
         },
       });
 
-      // Add GST & IEC Business Requirements
-      await prisma.requirement.create({
+      // --- GSTIN & IEC as under_review requirements (awaiting admin proof verification) ---
+      const gstReq = await prisma.requirement.create({
         data: {
           productCountryId: pc.id,
           type: 'document',
@@ -491,11 +526,27 @@ export async function registerUserAction(formData: FormData): Promise<void> {
           priority: 'critical',
           status: 'under_review',
           weight: 10,
-          reason: `GSTIN registered: ${gstNumber}. Awaiting certificate document upload.`,
+          reason: `GSTIN number registered: ${gstNumber.toUpperCase()}. Awaiting proof document verification by admin.`,
         },
       });
 
-      await prisma.requirement.create({
+      // Create placeholder proof document for GSTIN (admin can accept/reject)
+      await prisma.document.create({
+        data: {
+          businessId: business.id,
+          requirementId: gstReq.id,
+          type: 'GST_CERTIFICATE',
+          storageKey: `uploads/gst_proof_${Date.now()}.pdf`,
+          originalName: `GSTIN_Proof_${gstNumber.toUpperCase()}.pdf`,
+          mimeType: 'application/pdf',
+          size: 150000,
+          issueDate: new Date(),
+          status: 'under_review',
+          notes: `GSTIN: ${gstNumber.toUpperCase()} — Format validated. Awaiting admin verification of proof document.`,
+        },
+      });
+
+      const iecReq = await prisma.requirement.create({
         data: {
           productCountryId: pc.id,
           type: 'document',
@@ -503,16 +554,78 @@ export async function registerUserAction(formData: FormData): Promise<void> {
           priority: 'critical',
           status: 'under_review',
           weight: 10,
-          reason: `IEC Code registered: ${iecCode}. Awaiting certificate document upload.`,
+          reason: `IEC Code registered: ${iecCode}. Awaiting proof document verification by admin.`,
         },
       });
 
-      // Generate requirements from matching rules
+      // Create placeholder proof document for IEC (admin can accept/reject)
+      await prisma.document.create({
+        data: {
+          businessId: business.id,
+          requirementId: iecReq.id,
+          type: 'IEC_CERTIFICATE',
+          storageKey: `uploads/iec_proof_${Date.now()}.pdf`,
+          originalName: `IEC_Proof_${iecCode}.pdf`,
+          mimeType: 'application/pdf',
+          size: 150000,
+          issueDate: new Date(),
+          status: 'under_review',
+          notes: `IEC Code: ${iecCode} — Format validated. Awaiting admin verification of proof document.`,
+        },
+      });
+
+      // --- Business-type-specific certificates & documents ---
+      for (const req of config.requirements) {
+        await prisma.requirement.create({
+          data: {
+            productCountryId: pc.id,
+            type: req.type,
+            title: req.title,
+            priority: req.priority,
+            status: 'missing',
+            weight: req.weight,
+            reason: req.description,
+          },
+        });
+      }
+
+      // --- Business-type-specific packaging & labelling items (some pre-completed for initial score) ---
+      for (const item of config.packagingItems) {
+        await prisma.packagingItem.create({
+          data: {
+            productCountryId: pc.id,
+            title: item.title,
+            type: item.type,
+            priority: item.priority,
+            mandatory: item.mandatory,
+            status: item.initialStatus,
+            notes: item.notes,
+          },
+        });
+      }
+
+      // --- Business-type-specific shipment prerequisites (some pre-verified for initial score) ---
+      for (const shipReq of config.shipmentPrereqs) {
+        await prisma.requirement.create({
+          data: {
+            productCountryId: pc.id,
+            type: shipReq.type,
+            title: shipReq.title,
+            priority: shipReq.priority,
+            status: shipReq.initialStatus,
+            weight: shipReq.weight,
+            reason: shipReq.description,
+            completedAt: shipReq.initialStatus === 'verified' ? new Date() : null,
+          },
+        });
+      }
+
+      // Also generate requirements from any matching global rules
       const rules = await prisma.rule.findMany({
         where: {
           OR: [
-            { categoryId: defaultCategory.id, countryId: defaultCountry.id },
-            { categoryId: defaultCategory.id, countryId: null },
+            { categoryId: matchingCategory.id, countryId: defaultCountry.id },
+            { categoryId: matchingCategory.id, countryId: null },
             { categoryId: null, countryId: defaultCountry.id },
           ],
           active: true,
@@ -520,18 +633,27 @@ export async function registerUserAction(formData: FormData): Promise<void> {
       });
 
       for (const rule of rules) {
-        await prisma.requirement.create({
-          data: {
+        // Avoid duplicates — skip if a requirement with same title already exists
+        const existingReq = await prisma.requirement.findFirst({
+          where: {
             productCountryId: pc.id,
-            ruleId: rule.id,
-            type: rule.type,
             title: rule.title,
-            priority: rule.priority,
-            status: 'missing',
-            weight: rule.weight,
-            reason: rule.description,
           },
         });
+        if (!existingReq) {
+          await prisma.requirement.create({
+            data: {
+              productCountryId: pc.id,
+              ruleId: rule.id,
+              type: rule.type,
+              title: rule.title,
+              priority: rule.priority,
+              status: 'missing',
+              weight: rule.weight,
+              reason: rule.description,
+            },
+          });
+        }
       }
     }
   }

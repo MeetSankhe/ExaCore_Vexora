@@ -152,6 +152,34 @@ async function main() {
     },
   });
 
+  const catSteel = await prisma.productCategory.create({
+    data: {
+      name: 'Steel & Metal Products',
+      description: 'Structural steel, TMT bars, coils, pipes, and metal hardware',
+    },
+  });
+
+  const catFood = await prisma.productCategory.create({
+    data: {
+      name: 'Food Products & Processed Foods',
+      description: 'Ready-to-eat, canned foods, processed food products, beverages',
+    },
+  });
+
+  const catDiamonds = await prisma.productCategory.create({
+    data: {
+      name: 'Diamonds & Precious Stones',
+      description: 'Natural and lab-grown diamonds, precious and semi-precious gemstones',
+    },
+  });
+
+  const catGold = await prisma.productCategory.create({
+    data: {
+      name: 'Gold & Precious Metals',
+      description: 'Gold bars, gold jewellery, silver, platinum, and precious metals',
+    },
+  });
+
   // 4. Destination Countries
   console.log('Creating countries...');
   const uae = await prisma.country.create({
